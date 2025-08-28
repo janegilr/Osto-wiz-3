@@ -135,7 +135,7 @@
       const { useMemo, useState, useEffect, useRef } = React;
 
       // ---- hjelpefunksjonar ----
-      const STORAGE_KEY = "osteoWizardState_v3";   // bump versjon pga help modal
+      const STORAGE_KEY = "osteoWizardState_v3";
       const THEME_KEY = "osteoTheme";
 
       function showToast(msg) {
@@ -187,14 +187,19 @@
             <div className="modal" ref={ref} onClick={stop}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
                 <h2 id="help-title">Hjelp og tersklar</h2>
-                <button className="no-print" onClick={onClose}
-                        style="border:1px solid var(--border);background:var(--card);border-radius:10px;padding:6px 10px;cursor:pointer">Lukk (Esc)</button>
+                <button
+                  className="no-print"
+                  onClick={onClose}
+                  style={{border:'1px solid var(--border)',background:'var(--card)',borderRadius:10,padding:'6px 10px',cursor:'pointer'}}
+                >
+                  Lukk (Esc)
+                </button>
               </div>
               <p>Dette er ei kort oversikt over dei viktigaste tersklane og definisjonane som verktøyet brukar. Bruk alltid klinisk skjønn og lokale retningsliner.</p>
 
               <h3>FRAX</h3>
-              <p><b>FRAX MOF utan DXA</b> <span class="pill">≥ 15 %</span> → indikasjon for <b>DXA/VFA</b>.</p>
-              <p><b>FRAX MOF med DXA</b> <span class="pill">≥ 30 %</span> → talar for <b>legemiddelbehandling</b>.</p>
+              <p><b>FRAX MOF utan DXA</b> <span className="pill">≥ 15 %</span> → indikasjon for <b>DXA/VFA</b>.</p>
+              <p><b>FRAX MOF med DXA</b> <span className="pill">≥ 30 %</span> → talar for <b>legemiddelbehandling</b>.</p>
               <p><a href="https://www.sheffield.ac.uk/FRAX/tool.aspx?lang=no" target="_blank" rel="noreferrer">Opne FRAX</a></p>
 
               <h3>T-score</h3>
@@ -217,7 +222,7 @@
               <p>Kontroll etter <b>6 mnd</b> (Hb, leukocyttar, eGFR, 25-OH D, fritt Ca, ± PINP/CTX). Deretter årleg. DXA <b>etter 2–3 år</b>.</p>
 
               <h3>Snarvegar</h3>
-              <p><span class="kbd">Esc</span> – lukk hjelpa • Del lenke frå hovudsida for å sende med utfylte verdiar.</p>
+              <p><span className="kbd">Esc</span> – lukk hjelpa • Del lenke frå hovudsida for å sende med utfylte verdiar.</p>
             </div>
           </div>
         );
@@ -397,7 +402,7 @@
                 {step === 2 && (
                   <Card title={
                     <span>Trinn 2 – FRAX (utan DXA)
-                      <span class="hint" data-title="NEL terskel: Dersom FRAX MOF (utan DXA) ≥ 15 % → gå vidare til DXA.">i</span>
+                      <span className="hint" data-title="NEL terskel: Dersom FRAX MOF (utan DXA) ≥ 15 % → gå vidare til DXA.">i</span>
                     </span>
                   }>
                     <p style={{ color:'var(--muted)' }}>
@@ -435,15 +440,15 @@
                 {step === 3 && (
                   <Card title={
                     <span>Trinn 3 – DXA/VFA + klinikk
-                      <span class="hint" data-title="Indikasjonar for behandling (NEL): T ≤ -2,5; lavenergibrudd; FRAX med DXA ≥ 30 %; eller pred ≥ 5 mg i ≥ 3 mnd med T ≤ -1 / tidlegare fragilitetsbrudd.">i</span>
+                      <span className="hint" data-title="Indikasjonar for behandling (NEL): T ≤ -2,5; lavenergibrudd; FRAX med DXA ≥ 30 %; eller pred ≥ 5 mg i ≥ 3 mnd med T ≤ -1 / tidlegare fragilitetsbrudd.">i</span>
                     </span>
                   }>
                     <div style={{ display:'grid', gap:12, gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))' }}>
-                      <NumberField label={<span>T-score (lågaste) <span class="hint" data-title="‘Alvorleg profil’ ofte T ≤ -3,5 – vurder anabol strategi.">i</span></span>}
+                      <NumberField label={<span>T-score (lågaste) <span className="hint" data-title="‘Alvorleg profil’ ofte T ≤ -3,5 – vurder anabol strategi.">i</span></span>}
                                   value={dxa.tscore} onChange={(v) => setDxa((p) => ({ ...p, tscore: v }))} />
-                      <NumberField label={<span>FRAX MOF med DXA (%) <span class="hint" data-title="NEL terskel: FRAX MOF (med DXA) ≥ 30 % talar for behandling.">i</span></span>}
+                      <NumberField label={<span>FRAX MOF med DXA (%) <span className="hint" data-title="NEL terskel: FRAX MOF (med DXA) ≥ 30 % talar for behandling.">i</span></span>}
                                    value={dxa.fraxWithBmdMof} onChange={(v) => setDxa((p) => ({ ...p, fraxWithBmdMof: v }))} />
-                      <ToggleField label={<span>eGFR &lt; 30 ml/min <span class="hint" data-title="Denosumab kan vere aktuelt ved eGFR &lt; 30 ml/min.">i</span></span>}
+                      <ToggleField label={<span>eGFR &lt; 30 ml/min <span className="hint" data-title="Denosumab kan vere aktuelt ved eGFR &lt; 30 ml/min.">i</span></span>}
                                    checked={dxa.egfrLt30} onChange={(v) => setDxa((p) => ({ ...p, egfrLt30: v }))} />
                     </div>
 
@@ -518,8 +523,13 @@
               <p style={{ marginTop:4, color:'var(--muted)' }}>Steg-for-steg frå risikofaktorar til diagnostikk (FRAX/DXA) og behandling.</p>
             </div>
             <div className="no-print" style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
-              <button onClick={onHelp} title="Vis hjelpeside (tersklar)"
-                      style="border-radius:10px;background:var(--card);border:1px solid var(--border);padding:8px 12px;cursor:pointer">? Hjelp</button>
+              <button
+                onClick={onHelp}
+                title="Vis hjelpeside (tersklar)"
+                style={{borderRadius:10,background:'var(--card)',border:'1px solid var(--border)',padding:'8px 12px',cursor:'pointer'}}
+              >
+                ? Hjelp
+              </button>
               <button onClick={onShare} title="Kopier delbar lenke"
                       style={{ borderRadius:10, background:'var(--info-bg)', border:'1px solid var(--info-border)', padding:'8px 12px', cursor:'pointer' }}>
                 Kopier lenke
@@ -638,7 +648,7 @@
                     <div style={{ border:'1px solid var(--severe-border)', background:'var(--severe-bg)', borderRadius:12, padding:12 }}>
                       <p style={{ fontWeight:600 }}>
                         Alvorleg profil (t.d. T ≤ -3,5 / rygg- eller hoftebrudd)
-                        <span class="hint" data-title="Ved alvorleg profil prioriter anabol behandling først; alltid etterfulgt av antiresorptiv.">i</span>
+                        <span className="hint" data-title="Ved alvorleg profil prioriter anabol behandling først; alltid etterfulgt av antiresorptiv.">i</span>
                       </p>
                       <ul style={{ marginTop:6, paddingLeft:20 }}>
                         <li><b>Anabol behandling</b> (t.d. teriparatid eller romosozumab)</li>
@@ -651,7 +661,7 @@
                     <div style={{ border:'1px solid var(--info-border)', background:'var(--info-bg)', borderRadius:12, padding:12 }}>
                       <p style={{ fontWeight:600 }}>
                         Standard førsteval
-                        <span class="hint" data-title="Førsteval: alendronat p.o. Alternativ: zoledronsyre i.v. Denosumab ved eGFR &lt; 30 eller intoleranse.">i</span>
+                        <span className="hint" data-title="Førsteval: alendronat p.o. Alternativ: zoledronsyre i.v. Denosumab ved eGFR &lt; 30 eller intoleranse.">i</span>
                       </p>
                       <ul style={{ marginTop:6, paddingLeft:20 }}>
                         <li><b>Alendronat p.o.</b> (førsteval)
@@ -668,7 +678,7 @@
                     <div style={{ border:'1px solid var(--warn-border)', background:'var(--warn-bg)', borderRadius:12, padding:12 }}>
                       <p style={{ fontWeight:600 }}>
                         Glukokortikoid-indusert risiko
-                        <span class="hint" data-title="Pred ≥ 5 mg i ≥ 3 mnd + T ≤ -1 eller tidlegare fragilitetsbrudd → start bisfosfonat tidleg.">i</span>
+                        <span className="hint" data-title="Pred ≥ 5 mg i ≥ 3 mnd + T ≤ -1 eller tidlegare fragilitetsbrudd → start bisfosfonat tidleg.">i</span>
                       </p>
                       <ul style={{ marginTop:6, paddingLeft:20 }}>
                         <li>Start <b>bisfosfonat</b> tidleg ved relevant steroid-eksponering</li>
@@ -680,7 +690,7 @@
                   <div style={{ border:'1px solid var(--ok-border)', background:'var(--ok-bg)', borderRadius:12, padding:12 }}>
                     <p style={{ fontWeight:600 }}>
                       Oppfølging
-                      <span class="hint" data-title="Kontroll 6 mnd (Hb, leukocyttar, eGFR, 25-OH D, fritt Ca, ± PINP/CTX); deretter årleg. DXA etter 2–3 år.">i</span>
+                      <span className="hint" data-title="Kontroll 6 mnd (Hb, leukocyttar, eGFR, 25-OH D, fritt Ca, ± PINP/CTX); deretter årleg. DXA etter 2–3 år.">i</span>
                     </p>
                     <ul style={{ marginTop:6, paddingLeft:20 }}>
                       <li>Kontroll etter 6 mnd</li>
