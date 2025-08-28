@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interaktivt flytskjema – Osteoporose</title>
+    <!-- React + ReactDOM via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX i nettlesaren -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --text: #0f172a;
+        --muted: #475569;
+        --card: #ffffff;
+        --border: #e2e8f0;
+        --primary: #0369a1;
+        --primary-contrast: #ffffff;
+        --accent: #0f172a;
+        --danger-bg: #fee2e2;
+        --danger-text: #991b1b;
+        --info-bg: #e0f2fe;
+        --info-border: #bae6fd;
+        --warn-bg: #fef9c3;
+        --warn-border: #fde68a;
+        --ok-bg: #dcfce7;
+        --ok-border: #bbf7d0;
+        --severe-bg: #fae8ff;
+        --severe-border: #f5d0fe;
+        --progress-bg: #e2e8f0;
+        --overlay: rgba(0,0,0,.55);
+      }
+      .dark {
+        --bg: #0b1220;
+        --text: #e6edf6;
+        --muted: #94a3b8;
+        --card: #0f172a;
+        --border: #1f2937;
+        --primary: #1f8ed6;
+        --primary-contrast: #0b1220;
+        --accent: #e6edf6;
+        --danger-bg: #391a1a;
+        --danger-text: #fecaca;
+        --info-bg: #0a2536;
+        --info-border: #174a67;
+        --warn-bg: #2d2a12;
+        --warn-border: #5c4e1e;
+        --ok-bg: #0f2a1c;
+        --ok-border: #1f5a37;
+        --severe-bg: #281a2a;
+        --severe-border: #4a2a4f;
+        --progress-bg: #1f2937;
+        --overlay: rgba(0,0,0,.65);
+      }
+
+      html, body, #root { height: 100%; margin: 0; }
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial; background: var(--bg); color: var(--text); }
+      a { color: var(--primary); }
+      button { font-family: inherit; }
+
+      .toast {
+        position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+        background: var(--accent); color: #fff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.25);
+        opacity:0; pointer-events:none; transition: opacity .25s ease; z-index: 50;
+      }
+      .toast.show { opacity:1; pointer-events:auto; }
+
+      .progress { height: 6px; background: var(--progress-bg); border-radius:6px; overflow: hidden; }
+      .progress > div { height:100%; background: var(--primary); width:0%; transition: width .3s ease; }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--card);
+        padding: 20px;
+        box-shadow: 0 1px 2px rgba(0,0,0,.03);
+      }
+
+      /* Hint-ikon og “tooltip” */
+      .hint {
+        display:inline-flex; align-items:center; justify-content:center;
+        width:18px; height:18px; border-radius:50%;
+        font-size:11px; font-weight:700; cursor:help;
+        background: var(--info-bg); color: var(--primary);
+        border: 1px solid var(--info-border);
+        margin-left: 6px;
+        position: relative;
+      }
+      .hint[data-title]:hover::after {
+        content: attr(data-title);
+        position: absolute; left: 50%; bottom: calc(100% + 8px);
+        transform: translateX(-50%);
+        background: var(--accent); color: #fff; font-size:12px; line-height:1.3;
+        padding:8px 10px; border-radius:8px; white-space:pre-wrap; max-width: 260px;
+        box-shadow: 0 10px 24px rgba(0,0,0,.25);
+        z-index: 10;
+      }
+      .hint[data-title]:hover::before {
+        content: ""; position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%);
+        border: 6px solid transparent; border-top-color: var(--accent);
+        margin-bottom: 2px;
+      }
+
+      /* Hjelp-modal */
+      .overlay {
+        position: fixed; inset: 0; background: var(--overlay);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 40; padding: 16px;
+      }
+      .modal {
+        width: 100%; max-width: 880px; max-height: 85vh; overflow: auto;
+        background: var(--card); color: var(--text); border:1px solid var(--border);
+        border-radius: 16px; padding: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      }
+      .modal h2 { margin: 0 0 8px; font-size: 22px; }
+      .modal h3 { margin: 18px 0 6px; font-size: 16px; }
+      .modal p { margin: 6px 0; color: var(--muted); }
+      .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; margin-left:6px; background:var(--info-bg); border:1px solid var(--info-border); }
+      .kbd { background: var(--border); padding:2px 6px; border-radius:6px; border:1px solid var(--border); font-size:12px; }
+
+      @media print {
+        .no-print { display:none !important; }
+        body { background:#fff; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script type="text/babel">
+      const { useMemo, useState, useEffect, useRef } = React;
+
+      // ---- hjelpefunksjonar ----
+      const STORAGE_KEY = "osteoWizardState_v3";   // bump versjon pga help modal
+      const THEME_KEY = "osteoTheme";
+
+      function showToast(msg) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.classList.add("show");
+        setTimeout(()=> el.classList.remove("show"), 2000);
+      }
+
+      function encodeStateToHash(state) {
+        const json = JSON.stringify(state);
+        return "#state=" + encodeURIComponent(json);
+      }
+      function decodeStateFromHash() {
+        const h = location.hash || "";
+        const m = h.match(/^#state=(.*)$/);
+        if (!m) return null;
+        try { return JSON.parse(decodeURIComponent(m[1])); }
+        catch { return null; }
+      }
+
+      // ---- App med tema ----
+      function App() {
+        const systemPrefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const saved = (()=>{ try { return localStorage.getItem(THEME_KEY); } catch {_=>null} })();
+        const initial = saved ?? (systemPrefersDark ? "dark" : "light");
+        const [theme, setTheme] = useState(initial);
+
+        useEffect(() => {
+          document.body.classList.toggle("dark", theme === "dark");
+          try { localStorage.setItem(THEME_KEY, theme); } catch {}
+        }, [theme]);
+
+        return <OsteoporoseWizard theme={theme} setTheme={setTheme} />;
+      }
+
+      // ---- Hjelp-modal ----
+      function HelpModal({ onClose }) {
+        const ref = useRef(null);
+        useEffect(() => {
+          const onKey = (e) => { if (e.key === "Escape") onClose(); };
+          window.addEventListener("keydown", onKey);
+          return () => window.removeEventListener("keydown", onKey);
+        }, [onClose]);
+        const stop = (e)=> e.stopPropagation();
+
+        return (
+          <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={onClose}>
+            <div className="modal" ref={ref} onClick={stop}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+                <h2 id="help-title">Hjelp og tersklar</h2>
+                <button className="no-print" onClick={onClose}
+                        style="border:1px solid var(--border);background:var(--card);border-radius:10px;padding:6px 10px;cursor:pointer">Lukk (Esc)</button>
+              </div>
+              <p>Dette er ei kort oversikt over dei viktigaste tersklane og definisjonane som verktøyet brukar. Bruk alltid klinisk skjønn og lokale retningsliner.</p>
+
+              <h3>FRAX</h3>
+              <p><b>FRAX MOF utan DXA</b> <span class="pill">≥ 15 %</span> → indikasjon for <b>DXA/VFA</b>.</p>
+              <p><b>FRAX MOF med DXA</b> <span class="pill">≥ 30 %</span> → talar for <b>legemiddelbehandling</b>.</p>
+              <p><a href="https://www.sheffield.ac.uk/FRAX/tool.aspx?lang=no" target="_blank" rel="noreferrer">Opne FRAX</a></p>
+
+              <h3>T-score</h3>
+              <p><b>Osteoporose:</b> T ≤ -2,5. <b>Alvorleg profil:</b> ofte T ≤ -3,5 (vurder anabol strategi først).</p>
+
+              <h3>Frakturar</h3>
+              <p><b>Lavenergibrudd – rygg/hofte:</b> behandlingsindikasjon i seg sjølv (prioritér anabol ved alvorleg profil).</p>
+              <p><b>Andre lavenergibrudd:</b> tel som behandlingsindikasjon saman med øvrige funn.</p>
+
+              <h3>Glukokortikoid</h3>
+              <p>Pågåande <b>prednisolon ≥ 5 mg i ≥ 3 mnd</b> + <b>T ≤ -1</b> eller <b>tidl. fragilitetsbrudd</b> → start <b>bisfosfonat</b> tidleg.</p>
+
+              <h3>Nyrefunksjon</h3>
+              <p><b>eGFR &lt; 30 ml/min:</b> vurder <b>denosumab</b> (særleg ved kontraindikasjon mot bisfosfonat).</p>
+
+              <h3>Standard førstelinje</h3>
+              <p><b>Alendronat p.o.</b> er førsteval. Alternativ: <b>zoledronsyre i.v.</b> ved GI-biverknader/etterleving.</p>
+
+              <h3>Oppfølging</h3>
+              <p>Kontroll etter <b>6 mnd</b> (Hb, leukocyttar, eGFR, 25-OH D, fritt Ca, ± PINP/CTX). Deretter årleg. DXA <b>etter 2–3 år</b>.</p>
+
+              <h3>Snarvegar</h3>
+              <p><span class="kbd">Esc</span> – lukk hjelpa • Del lenke frå hovudsida for å sende med utfylte verdiar.</p>
+            </div>
+          </div>
+        );
+      }
+
+      // ---- Hovudapp ----
+      function OsteoporoseWizard({ theme, setTheme }) {
+        const defaultRf = { priorFracture:false, parentalHip:false, steroids:false, earlyMenopause:false, secondary:false, lowBMI:false, fallRisk:false, smoking:false, alcohol3:false, ra:false };
+        const defaultFrax = { hip:"", mof:"" };
+        const defaultDxa = { tscore:"", vertebralHipFracture:false, otherFragilityFracture:false, fraxWithBmdMof:"", egfrLt30:false };
+
+        const urlState = decodeStateFromHash();
+        const stored = !urlState && (() => {
+          try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"); } catch { return null; }
+        })();
+
+        const [intro, setIntro] = useState(urlState?.intro ?? stored?.intro ?? true);
+        const [step, setStep] = useState(urlState?.step ?? stored?.step ?? 1);
+        const [rf, setRf] = useState(urlState?.rf ?? stored?.rf ?? defaultRf);
+        const [fraxNoBmd, setFraxNoBmd] = useState(urlState?.fraxNoBmd ?? stored?.fraxNoBmd ?? defaultFrax);
+        const [dxa, setDxa] = useState(urlState?.dxa ?? stored?.dxa ?? defaultDxa);
+        const [helpOpen, setHelpOpen] = useState(false);
+
+        useEffect(() => {
+          const snapshot = { intro, step, rf, fraxNoBmd, dxa };
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot)); } catch {}
+        }, [intro, step, rf, fraxNoBmd, dxa]);
+
+        const totalSteps = 4;
+        const progressPct = Math.max(0, Math.min(100, Math.round(((step-1)/(totalSteps-1))*100)));
+
+        const anyRisk = useMemo(() => Object.values(rf).some(Boolean), [rf]);
+        const fraxNoBmdMof = Number(fraxNoBmd.mof);
+        const fraxTriggersDXA = isFinite(fraxNoBmdMof) && fraxNoBmdMof >= 15;
+
+        const t = Number(dxa.tscore);
+        const fraxWithBmd = Number(dxa.fraxWithBmdMof);
+        const severe = isFinite(t) && t <= -3.5;
+
+        const treatIndication = useMemo(() => {
+          const tscoreOsteoporosis = isFinite(t) && t <= -2.5;
+          const treatByFracture = dxa.vertebralHipFracture || dxa.otherFragilityFracture;
+          const treatByFRAX = isFinite(fraxWithBmd) && fraxWithBmd >= 30;
+          const steroidCriterion = rf.steroids && (rf.priorFracture || (isFinite(t) && t <= -1));
+          return tscoreOsteoporosis || treatByFracture || treatByFRAX || steroidCriterion;
+        }, [t, dxa.vertebralHipFracture, dxa.otherFragilityFracture, fraxWithBmd, rf.steroids, rf.priorFracture]);
+
+        const severePath = severe || dxa.vertebralHipFracture;
+
+        const resetAll = () => {
+          setStep(1); setIntro(true);
+          setRf(defaultRf); setFraxNoBmd(defaultFrax); setDxa(defaultDxa);
+          history.replaceState(null, "", " "); // fjern hash
+          showToast("Tilbakestilt");
+        };
+
+        const shareLink = async () => {
+          const snapshot = { intro:false, step, rf, fraxNoBmd, dxa };
+          const url = location.origin + location.pathname + encodeStateToHash(snapshot);
+          try { await navigator.clipboard.writeText(url); showToast("Lenke kopiert!"); }
+          catch { prompt("Kopier lenka manuelt:", url); }
+        };
+
+        const summaryText = () => {
+          const yesNo = (b)=> b ? "Ja" : "Nei";
+          return [
+            `Risikofaktorar: ${anyRisk ? "Ja" : "Nei"}`,
+            `FRAX MOF (utan DXA): ${isFinite(fraxNoBmdMof) ? fraxNoBmdMof+"%" : "–"}`,
+            `DXA tilrådd (FRAX ≥ 15 %): ${yesNo(fraxTriggersDXA)}`,
+            `T-score (lågaste): ${isFinite(t) ? t : "–"}`,
+            `FRAX MOF med DXA: ${isFinite(fraxWithBmd) ? fraxWithBmd+"%" : "–"}`,
+            `Lavenergibrudd – rygg/hofte: ${yesNo(dxa.vertebralHipFracture)}`,
+            `Andre lavenergibrudd: ${yesNo(dxa.otherFragilityFracture)}`,
+            `eGFR < 30: ${yesNo(dxa.egfrLt30)}`,
+            `Systemiske steroider: ${yesNo(rf.steroids)}`,
+            (treatIndication ? "→ Indikasjon for behandling: JA" : "→ Indikasjon for behandling: NEI"),
+            (treatIndication
+              ? severePath
+                ? "Anbefalt: anabol behandling (teriparatid/romosozumab) → antiresorptiv."
+                : "Anbefalt: alendronat p.o. (evt. zoledronsyre i.v.). Denosumab ved eGFR < 30/intoleranse."
+              : "")
+          ].filter(Boolean).join("\n");
+        };
+
+        const copySummary = async () => {
+          try { await navigator.clipboard.writeText(summaryText()); showToast("Oppsummering kopiert!"); }
+          catch { showToast("Kunne ikkje kopiere – marker og kopier manuelt."); }
+        };
+
+        const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+
+        // Intro
+        if (intro) {
+          return (
+            <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#0f172a',color:'#fff',textAlign:'center',padding:'24px'}}>
+              <div>
+                <h1 style={{ fontSize: 36, fontWeight: 800, marginBottom: 24 }}>Tenkjer du på osteoporose?</h1>
+                <button
+                  onClick={() => setIntro(false)}
+                  className="no-print"
+                  style={{ background:'#dc2626', color:'#fff', borderRadius:16, padding:'16px 32px',
+                           fontSize:28, fontWeight:800, boxShadow:'0 6px 20px rgba(0,0,0,.25)', border:'none', cursor:'pointer' }}
+                >
+                  Ja!
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        // Veiviser
+        return (
+          <div style={{ background:'var(--bg)', minHeight:'100vh', padding:'24px 0 48px' }}>
+            <div style={{ margin:'0 auto', maxWidth:980, padding:'0 16px' }}>
+              <Header
+                onBackToIntro={() => setIntro(true)}
+                onShare={shareLink}
+                theme={theme}
+                toggleTheme={toggleTheme}
+                onHelp={()=>setHelpOpen(true)}
+              />
+              <div className="no-print" style={{ marginBottom:12 }}>
+                <div className="progress" aria-label="Framdrift">
+                  <div style={{ width: progressPct + "%" }}></div>
+                </div>
+              </div>
+              <Stepper step={step} setStep={setStep} anyRisk={anyRisk} fraxTriggersDXA={fraxTriggersDXA} />
+
+              <div style={{ display:'grid', gap:24 }}>
+                {step === 1 && (
+                  <Card title={<span>Trinn 1 – Risikofaktorar (vel ein eller fleire)</span>}>
+                    <div style={{ display:'grid', gap:12, gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))' }}>
+                      {[
+                        { key:'priorFracture', label:'Tidligare lavenergibrudd' },
+                        { key:'parentalHip', label:'Forelder med lårhalsbrudd' },
+                        { key:'steroids', label:'Systemiske kortikosteroider (≥ 5 mg pred i ≥ 3 mnd)' },
+                        { key:'earlyMenopause', label:'Menopause før 45 år' },
+                        { key:'secondary', label:'Sekundær osteoporose (sjukdom/legemiddel)' },
+                        { key:'lowBMI', label:'Lav KMI / underernæring' },
+                        { key:'fallRisk', label:'Auka falltendens' },
+                        { key:'smoking', label:'Røyking (aktuell)' },
+                        { key:'alcohol3', label:'Alkohol ≥ 3 einingar/dag' },
+                        { key:'ra', label:'Revmatoid artritt' },
+                      ].map((item) => (
+                        <label key={item.key} style={{ display:'flex', gap:12, alignItems:'flex-start',
+                                padding:12, border:'1px solid var(--border)', borderRadius:12, background:'var(--card)' }}>
+                          <input
+                            type="checkbox"
+                            checked={rf[item.key]}
+                            onChange={(e) => setRf((prev) => ({ ...prev, [item.key]: e.target.checked }))}
+                            style={{ width:20, height:20 }}
+                          />
+                          <span>{item.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div style={{ marginTop:16, display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
+                      <button
+                        onClick={() => setStep(2)}
+                        disabled={!anyRisk}
+                        title={!anyRisk ? "Vel minst éin risikofaktor" : "Gå vidare"}
+                        className="no-print"
+                        style={{ borderRadius:12, padding:'8px 16px', border:'none',
+                                  cursor: anyRisk ? 'pointer' : 'not-allowed',
+                                  background: anyRisk ? 'var(--primary)' : '#94a3b8', color:'var(--primary-contrast)' }}
+                      >
+                        Gå vidare
+                      </button>
+                      <span style={{ fontSize:12, color:'var(--muted)' }}>
+                        {!anyRisk ? "Ingen risikofaktorar valt enno – då er screening ikkje tilrådd" : "→ Til FRAX"}
+                      </span>
+                    </div>
+                  </Card>
+                )}
+
+                {step === 2 && (
+                  <Card title={
+                    <span>Trinn 2 – FRAX (utan DXA)
+                      <span class="hint" data-title="NEL terskel: Dersom FRAX MOF (utan DXA) ≥ 15 % → gå vidare til DXA.">i</span>
+                    </span>
+                  }>
+                    <p style={{ color:'var(--muted)' }}>
+                      FRAX reknar 10-års risiko for hoftebrudd og hovudosteoporotiske brudd.
+                      <b> MOF ≥ 15 %</b> → DXA.
+                    </p>
+                    <div style={{ display:'grid', gap:12, gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))' }}>
+                      <NumberField label="FRAX MOF (utan DXA) %" value={fraxNoBmd.mof} onChange={(v) => setFraxNoBmd((p) => ({ ...p, mof: v }))} />
+                      <NumberField label="FRAX hofte (utan DXA) % (valfritt)" value={fraxNoBmd.hip} onChange={(v) => setFraxNoBmd((p) => ({ ...p, hip: v }))} />
+                    </div>
+                    <div style={{ marginTop:8, fontSize:12 }}>
+                      <a href="https://www.sheffield.ac.uk/FRAX/tool.aspx?lang=no" target="_blank" rel="noreferrer">Opne FRAX i ny fane</a>
+                    </div>
+
+                    <div style={{ marginTop:16, display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
+                      <button
+                        onClick={() => setStep(3)}
+                        disabled={!fraxTriggersDXA}
+                        className="no-print"
+                        style={{ borderRadius:12, padding:'8px 16px', border:'none',
+                                background: fraxTriggersDXA ? 'var(--primary)' : '#94a3b8', color:'var(--primary-contrast)', cursor: fraxTriggersDXA ? 'pointer' : 'not-allowed' }}
+                      >
+                        Gå til DXA/VFA
+                      </button>
+                      <button onClick={() => setStep(1)} className="no-print" style={{ borderRadius:12, padding:'8px 16px', background:'var(--border)', border:'1px solid var(--border)', cursor:'pointer' }}>
+                        ← Tilbake
+                      </button>
+                      <span style={{ fontSize:12, color:'var(--muted)' }}>
+                        {fraxTriggersDXA ? "FRAX ≥ 15 % – DXA tilrådd" : "Skriv inn MOF for å vurdere om DXA er tilrådd"}
+                      </span>
+                    </div>
+                  </Card>
+                )}
+
+                {step === 3 && (
+                  <Card title={
+                    <span>Trinn 3 – DXA/VFA + klinikk
+                      <span class="hint" data-title="Indikasjonar for behandling (NEL): T ≤ -2,5; lavenergibrudd; FRAX med DXA ≥ 30 %; eller pred ≥ 5 mg i ≥ 3 mnd med T ≤ -1 / tidlegare fragilitetsbrudd.">i</span>
+                    </span>
+                  }>
+                    <div style={{ display:'grid', gap:12, gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))' }}>
+                      <NumberField label={<span>T-score (lågaste) <span class="hint" data-title="‘Alvorleg profil’ ofte T ≤ -3,5 – vurder anabol strategi.">i</span></span>}
+                                  value={dxa.tscore} onChange={(v) => setDxa((p) => ({ ...p, tscore: v }))} />
+                      <NumberField label={<span>FRAX MOF med DXA (%) <span class="hint" data-title="NEL terskel: FRAX MOF (med DXA) ≥ 30 % talar for behandling.">i</span></span>}
+                                   value={dxa.fraxWithBmdMof} onChange={(v) => setDxa((p) => ({ ...p, fraxWithBmdMof: v }))} />
+                      <ToggleField label={<span>eGFR &lt; 30 ml/min <span class="hint" data-title="Denosumab kan vere aktuelt ved eGFR &lt; 30 ml/min.">i</span></span>}
+                                   checked={dxa.egfrLt30} onChange={(v) => setDxa((p) => ({ ...p, egfrLt30: v }))} />
+                    </div>
+
+                    <div style={{ display:'grid', gap:12, gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', marginTop:12 }}>
+                      <ToggleField label="Lavenergibrudd – rygg/hofte" checked={dxa.vertebralHipFracture} onChange={(v) => setDxa((p) => ({ ...p, vertebralHipFracture: v }))} />
+                      <ToggleField label="Andre lavenergibrudd" checked={dxa.otherFragilityFracture} onChange={(v) => setDxa((p) => ({ ...p, otherFragilityFracture: v }))} />
+                    </div>
+
+                    <div style={{ marginTop:16, display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
+                      <button onClick={() => setStep(4)} className="no-print" style={{ borderRadius:12, background:'var(--primary)', color:'var(--primary-contrast)', padding:'8px 16px', border:'none', cursor:'pointer' }}>
+                        Sjå vurdering
+                      </button>
+                      <button onClick={() => setStep(2)} className="no-print" style={{ borderRadius:12, background:'var(--border)', border:'1px solid var(--border)', padding:'8px 16px', cursor:'pointer' }}>
+                        ← Tilbake
+                      </button>
+                      <span style={{ fontSize:12, color:'var(--muted)' }}>{(isFinite(Number(dxa.tscore)) && Number(dxa.tscore) <= -3.5) ? "Alvorleg osteoporose (T ≤ -3,5)" : ""}</span>
+                    </div>
+                  </Card>
+                )}
+
+                {step === 4 && (
+                  <Card title="Trinn 4 – Konklusjon og forslag til behandling">
+                    <Summary
+                      anyRisk={anyRisk}
+                      fraxNoBmdMof={fraxNoBmdMof}
+                      fraxTriggersDXA={fraxTriggersDXA}
+                      t={t}
+                      fraxWithBmd={fraxWithBmd}
+                      rf={rf}
+                      dxa={dxa}
+                      treatIndication={treatIndication}
+                      severePath={severePath}
+                    />
+
+                    <div className="no-print" style={{ marginTop:16, display:'flex', gap:12, flexWrap:'wrap' }}>
+                      <button onClick={() => setStep(3)} style={{ borderRadius:12, background:'var(--border)', border:'1px solid var(--border)', padding:'8px 16px', cursor:'pointer' }}>
+                        ← Juster input
+                      </button>
+                      <button onClick={() => window.print()} style={{ borderRadius:12, background:'var(--card)', border:'1px solid var(--border)', padding:'8px 16px', cursor:'pointer' }}>
+                        Skriv ut (PDF)
+                      </button>
+                      <button onClick={copySummary} style={{ borderRadius:12, background:'var(--card)', border:'1px solid var(--border)', padding:'8px 16px', cursor:'pointer' }}>
+                        Kopiér oppsummering
+                      </button>
+                      <button onClick={shareLink} style={{ borderRadius:12, background:'var(--info-bg)', border:'1px solid var(--info-border)', padding:'8px 16px', cursor:'pointer' }}>
+                        Del denne vurderinga
+                      </button>
+                      <button onClick={resetAll} style={{ borderRadius:12, background:'var(--danger-bg)', color:'var(--danger-text)', border:'1px solid var(--border)', padding:'8px 16px', cursor:'pointer' }}>
+                        Tilbake til start
+                      </button>
+                    </div>
+
+                    <p style={{ marginTop:16, fontSize:12, color:'var(--muted)' }}>
+                      Merk: Verktøyet gjev ei forenkla rettleiing basert på NEL-prinsipp. Klinisk skjønn og lokale retningsliner/forordningar (HELFO/Blå resept) må alltid nyttast.
+                    </p>
+                  </Card>
+                )}
+              </div>
+            </div>
+
+            {helpOpen && <HelpModal onClose={()=>setHelpOpen(false)} />}
+
+          </div>
+        );
+      }
+
+      function Header({ onBackToIntro, onShare, theme, toggleTheme, onHelp }) {
+        return (
+          <div style={{ marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div>
+              <h1 style={{ fontSize:24, fontWeight:700 }}>Interaktivt flytskjema – Osteoporose</h1>
+              <p style={{ marginTop:4, color:'var(--muted)' }}>Steg-for-steg frå risikofaktorar til diagnostikk (FRAX/DXA) og behandling.</p>
+            </div>
+            <div className="no-print" style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
+              <button onClick={onHelp} title="Vis hjelpeside (tersklar)"
+                      style="border-radius:10px;background:var(--card);border:1px solid var(--border);padding:8px 12px;cursor:pointer">? Hjelp</button>
+              <button onClick={onShare} title="Kopier delbar lenke"
+                      style={{ borderRadius:10, background:'var(--info-bg)', border:'1px solid var(--info-border)', padding:'8px 12px', cursor:'pointer' }}>
+                Kopier lenke
+              </button>
+              <button onClick={toggleTheme} title="Byt mellom lys/mørk"
+                      style={{ borderRadius:10, background:'var(--card)', border:'1px solid var(--border)', padding:'8px 12px', cursor:'pointer' }}>
+                {theme === "dark" ? "Lys modus" : "Mørk modus"}
+              </button>
+              <button onClick={onBackToIntro}
+                      style={{ borderRadius:10, background:'var(--border)', border:'1px solid var(--border)', padding:'8px 12px', cursor:'pointer' }}>
+                ← Til framsida
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      function Stepper({ step, setStep, anyRisk, fraxTriggersDXA }) {
+        const items = [
+          { id: 1, title: "Risikofaktorar" },
+          { id: 2, title: "FRAX (utan DXA)" },
+          { id: 3, title: "DXA/VFA + klinikk" },
+          { id: 4, title: "Vurdering/terapi" }
+        ];
+        return (
+          <div className="no-print" style={{ marginBottom:16, display:'flex', gap:8, flexWrap:'wrap' }}>
+            {items.map((it) => {
+              const disabled = (it.id === 2 && !anyRisk) || (it.id === 3 && !fraxTriggersDXA);
+              const active = step === it.id;
+              return (
+                <button key={it.id} onClick={() => setStep(it.id)} disabled={disabled}
+                        title={disabled ? (it.id === 2 ? "Vel risikofaktorar først" : "FRAX MOF må vere ≥ 15 %") : it.title}
+                        style={{
+                          borderRadius:16, padding:'8px 12px',
+                          background: active ? 'var(--primary)' : 'var(--card)',
+                          color: active ? 'var(--primary-contrast)' : 'var(--text)',
+                          border:'1px solid var(--border)', cursor: disabled ? 'not-allowed' : 'pointer',
+                          opacity: disabled ? 0.5 : 1
+                        }}>
+                  {it.id}. {it.title}
+                </button>
+              );
+            })}
+          </div>
+        );
+      }
+
+      function Card({ title, children }) {
+        return (
+          <section className="card">
+            <h2 style={{ fontSize:18, fontWeight:700, marginBottom:12 }}>{title}</h2>
+            <div>{children}</div>
+          </section>
+        );
+      }
+
+      function NumberField({ label, value, onChange }) {
+        return (
+          <label>
+            <div style={{ fontSize:14, color:'var(--muted)' }}>{label}</div>
+            <input type="number" step="0.1" value={value} onChange={(e) => onChange(e.target.value)}
+                   style={{ marginTop:4, width:'100%', border:'1px solid var(--border)', background:'var(--card)', color:'var(--text)', borderRadius:12, padding:'8px 12px' }} />
+          </label>
+        );
+      }
+
+      function ToggleField({ label, checked, onChange }) {
+        return (
+          <label style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                          gap:12, border:'1px solid var(--border)', borderRadius:12, background:'var(--card)', padding:12 }}>
+            <span>{label}</span>
+            <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ width:20, height:20 }} />
+          </label>
+        );
+      }
+
+      function Summary({ anyRisk, fraxNoBmdMof, fraxTriggersDXA, t, fraxWithBmd, rf, dxa, treatIndication, severePath }) {
+        const lines = [
+          { label: "Risikofaktorar", value: anyRisk ? "Ja" : "Nei" },
+          { label: "FRAX MOF (utan DXA)", value: isFinite(fraxNoBmdMof) ? `${fraxNoBmdMof}%` : "–" },
+          { label: "DXA tilrådd (FRAX ≥ 15 %)", value: fraxTriggersDXA ? "Ja" : "Nei" },
+          { label: "T-score (lågaste)", value: isFinite(t) ? `${t}` : "–" },
+          { label: "FRAX MOF med DXA", value: isFinite(fraxWithBmd) ? `${fraxWithBmd}%` : "–" },
+          { label: "Lavenergibrudd – rygg/hofte", value: dxa.vertebralHipFracture ? "Ja" : "Nei" },
+          { label: "Andre lavenergibrudd", value: dxa.otherFragilityFracture ? "Ja" : "Nei" },
+          { label: "eGFR < 30", value: dxa.egfrLt30 ? "Ja" : "Nei" },
+          { label: "Systemiske steroider", value: rf.steroids ? "Ja" : "Nei" }
+        ];
+        return (
+          <div style={{ display:'grid', gap:20, gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))' }}>
+            <div>
+              <h3 style={{ fontSize:16, fontWeight:700 }}>Samandrag</h3>
+              <dl style={{ marginTop:12, display:'grid', gridTemplateColumns:'auto 1fr', columnGap:16, rowGap:8, fontSize:14 }}>
+                {lines.map((ln) => (
+                  <React.Fragment key={ln.label}>
+                    <dt style={{ color:'var(--muted)' }}>{ln.label}</dt>
+                    <dd style={{ fontWeight:600 }}>{ln.value}</dd>
+                  </React.Fragment>
+                ))}
+              </dl>
+            </div>
+
+            <div>
+              <h3 style={{ fontSize:16, fontWeight:700 }}>Konklusjon</h3>
+              {!treatIndication ? (
+                <ul style={{ marginTop:12, paddingLeft:20 }}>
+                  <li><b>Ingen klar indikasjon for legemiddelbehandling.</b></li>
+                  <li>Livsstilsråd: vektberande aktivitet, styrke/balanse, fallførebygging, røykeslutt, moderat alkohol.</li>
+                  <li>Kost: sikr Ca/D-tilførsel; supplér ved dokumentert mangel eller utilstrekkeleg inntak.</li>
+                </ul>
+              ) : (
+                <div style={{ marginTop:8, display:'grid', gap:12 }}>
+                  <p><b>Indikasjon for behandling er til stades.</b></p>
+
+                  {severePath ? (
+                    <div style={{ border:'1px solid var(--severe-border)', background:'var(--severe-bg)', borderRadius:12, padding:12 }}>
+                      <p style={{ fontWeight:600 }}>
+                        Alvorleg profil (t.d. T ≤ -3,5 / rygg- eller hoftebrudd)
+                        <span class="hint" data-title="Ved alvorleg profil prioriter anabol behandling først; alltid etterfulgt av antiresorptiv.">i</span>
+                      </p>
+                      <ul style={{ marginTop:6, paddingLeft:20 }}>
+                        <li><b>Anabol behandling</b> (t.d. teriparatid eller romosozumab)</li>
+                        <li><i>Alltid</i> etterfølgt av <b>antiresorptiv</b> behandling</li>
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {!severePath && (
+                    <div style={{ border:'1px solid var(--info-border)', background:'var(--info-bg)', borderRadius:12, padding:12 }}>
+                      <p style={{ fontWeight:600 }}>
+                        Standard førsteval
+                        <span class="hint" data-title="Førsteval: alendronat p.o. Alternativ: zoledronsyre i.v. Denosumab ved eGFR &lt; 30 eller intoleranse.">i</span>
+                      </p>
+                      <ul style={{ marginTop:6, paddingLeft:20 }}>
+                        <li><b>Alendronat p.o.</b> (førsteval)
+                          <ul style={{ marginTop:6, paddingLeft:20 }}>
+                            <li>Zoledronsyre i.v. ved GI-biverknader/etterleving</li>
+                          </ul>
+                        </li>
+                        <li><b>Denosumab</b> ved eGFR &lt; 30 eller intoleranse/kontraindikasjon mot bisfosfonat</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {rf.steroids && (
+                    <div style={{ border:'1px solid var(--warn-border)', background:'var(--warn-bg)', borderRadius:12, padding:12 }}>
+                      <p style={{ fontWeight:600 }}>
+                        Glukokortikoid-indusert risiko
+                        <span class="hint" data-title="Pred ≥ 5 mg i ≥ 3 mnd + T ≤ -1 eller tidlegare fragilitetsbrudd → start bisfosfonat tidleg.">i</span>
+                      </p>
+                      <ul style={{ marginTop:6, paddingLeft:20 }}>
+                        <li>Start <b>bisfosfonat</b> tidleg ved relevant steroid-eksponering</li>
+                        <li>Vurder varigheit og seponering (6–12 mnd etter stopp av steroid)</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  <div style={{ border:'1px solid var(--ok-border)', background:'var(--ok-bg)', borderRadius:12, padding:12 }}>
+                    <p style={{ fontWeight:600 }}>
+                      Oppfølging
+                      <span class="hint" data-title="Kontroll 6 mnd (Hb, leukocyttar, eGFR, 25-OH D, fritt Ca, ± PINP/CTX); deretter årleg. DXA etter 2–3 år.">i</span>
+                    </p>
+                    <ul style={{ marginTop:6, paddingLeft:20 }}>
+                      <li>Kontroll etter 6 mnd</li>
+                      <li>Deretter årleg klinikk + relevante prøver</li>
+                      <li>DXA etter 2–3 år</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
